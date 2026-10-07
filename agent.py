@@ -23,20 +23,28 @@ def read_text_file(filename: str) -> str:
     Read a text file from the current project directory.
 
     Args:
-        filename: Name of the file to read.
+        filename: Relative path to a file inside the project directory.
 
     Returns:
         The contents of the file.
     """
-    path = Path(filename)
+    project_root = Path(".").resolve()
+    requested_path = (project_root / filename).resolve()
 
-    if not path.exists():
+    if project_root not in requested_path.parents:
+        return "Error: access outside the project directory is not allowed."
+
+    if not requested_path.exists():
         return f"Error: {filename} does not exist."
 
-    if not path.is_file():
+    if not requested_path.is_file():
         return f"Error: {filename} is not a file."
 
-    return path.read_text()
+    try:
+        return requested_path.read_text()
+    except UnicodeDecodeError:
+        return f"Error: {filename} is not a readable text file."
+
 
 tools = [
     list_project_files,
@@ -101,10 +109,15 @@ while True:
             else:
                 tool_function = tool_registry[tool_name]
 
-                try:
-                    result = tool_function(**arguments)
-                except Exception as error:
-                    result = f"Tool error: {error}"
+                if not isinstance(arguments, dict):
+                    result = "Tool error: arguments must be a dictionary"
+
+                else:
+
+                    try:
+                        result = tool_function(**arguments)
+                    except Exception as error:
+                        result = f"Tool error: {error}"
 
             print(f"Tool result:\n{result}\n")
 
