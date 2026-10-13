@@ -45,15 +45,51 @@ def read_text_file(filename: str) -> str:
     except UnicodeDecodeError:
         return f"Error: {filename} is not a readable text file."
 
+def write_text_file(filename: str, content: str) -> str:
+    """
+    Write text to a file inside the current project directory.
+
+    Args:
+        filename: Relative path to a file inside the project directory.
+        content: Text content to write.
+
+    Returns:
+        A status message describing the result.
+    """
+    project_root = Path(".").resolve()
+    requested_path = (project_root / filename).resolve()
+
+    if project_root not in requested_path.parents:
+        return "Error: writing outside the project directory is not allowed."
+
+    protected_files = {
+        "agent.py",
+        ".gitignore",
+        "requirements.txt",
+    }
+
+    if requested_path.name in protected_files:
+        return f"Error: {filename} is protected and cannot be modified."
+
+    if requested_path.exists():
+        return f"Error: {filename} already exists. Refusing to overwrite it."
+    
+    requested_path.write_text(content)
+
+    return f"Successfully wrote {filename}."
+    
+
 
 tools = [
     list_project_files,
     read_text_file,
+    write_text_file,
 ]
 
 tool_registry = {
     "list_project_files": list_project_files,
     "read_text_file": read_text_file,
+    "write_text_file": write_text_file,
 }
 
 messages = [
