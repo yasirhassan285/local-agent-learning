@@ -73,7 +73,7 @@ def write_text_file(filename: str, content: str) -> str:
 
     if requested_path.exists():
         return f"Error: {filename} already exists. Refusing to overwrite it."
-    
+
     requested_path.write_text(content)
 
     return f"Successfully wrote {filename}."
@@ -92,6 +92,10 @@ tool_registry = {
     "write_text_file": write_text_file,
 }
 
+approval_required = {
+    "write_text_file",
+}
+
 messages = [
     {
         "role": "system",
@@ -102,6 +106,25 @@ messages = [
         ),
     }
 ]
+
+def request_approval(tool_name:str, arguments: dict) ->bool:
+    """Ask the user before executing the tool"""
+
+    print("\n ____APPROVAL REQUIRED_____")
+    print(f"Tool:{tool_name}")
+    print("Arguments:")
+
+    for name, value in arguments.items():
+        print(f"{name}:{value}")
+    while True:
+        answer = input("\n Execute this tool?[y/n]:").strip().lower()
+
+        if answer in {"y", "yes"}:
+            return True
+
+        if answer in {"n", "no"}:
+            return False
+        print("Please enter y or n")
 
 while True:
     user_input = input("You: ").strip()
@@ -142,20 +165,30 @@ while True:
 
             if tool_name not in tool_registry:
                 result = f"Error: unknown tool {tool_name}"
+
+            elif not isinstance(arguments, dict):
+                    result = "Tool error: arguments must be a dictionary"
+
             else:
                 tool_function = tool_registry[tool_name]
 
-                if not isinstance(arguments, dict):
-                    result = "Tool error: arguments must be a dictionary"
+                approved = True
+
+                if tool_name in approval_required:
+                    approved = request_approval(tool_name, arguments)
+
+                if not approved:
+                    result ="Tool execution denied by the user"
 
                 else:
-
                     try:
                         result = tool_function(**arguments)
-                    except Exception as error:
+                    except TypeError as error:
+                        result = f"Tool argument error: {error}"
+                    except Exception as error: 
                         result = f"Tool error: {error}"
 
-            print(f"Tool result:\n{result}\n")
+
 
             messages.append(
                 {
