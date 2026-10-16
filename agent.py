@@ -1,155 +1,6 @@
-from pathlib import Path    
 from ollama import chat
+from tools import APPROVAL_REQUIRED, TOOLS, TOOL_REGISTRY
 
-def list_project_files() -> str:
-    """
-    List files and directories in the current project directory.
-
-    Returns:
-        A newline-separated list of files and directories.
-    """
-    items = []
-
-    for path in Path(".").iterdir():
-        if path.name in {".venv", ".git"}:
-            continue
-
-        items.append(path.name)
-
-    return "\n".join(sorted(items))
-
-def read_text_file(filename: str) -> str:
-    """
-    Read a text file from the current project directory.
-
-    Args:
-        filename: Relative path to a file inside the project directory.
-
-    Returns:
-        The contents of the file.
-    """
-    project_root = Path(".").resolve()
-    requested_path = (project_root / filename).resolve()
-
-    if project_root not in requested_path.parents:
-        return "Error: access outside the project directory is not allowed."
-
-    if not requested_path.exists():
-        return f"Error: {filename} does not exist."
-
-    if not requested_path.is_file():
-        return f"Error: {filename} is not a file."
-
-    try:
-        return requested_path.read_text()
-    except UnicodeDecodeError:
-        return f"Error: {filename} is not a readable text file."
-
-def write_text_file(filename: str, content: str) -> str:
-    """
-    Write text to a file inside the current project directory.
-
-    Args:
-        filename: Relative path to a file inside the project directory.
-        content: Text content to write.
-
-    Returns:
-        A status message describing the result.
-    """
-    project_root = Path(".").resolve()
-    requested_path = (project_root / filename).resolve()
-
-    if project_root not in requested_path.parents:
-        return "Error: writing outside the project directory is not allowed."
-
-    protected_files = {
-        "agent.py",
-        ".gitignore",
-        "requirements.txt",
-    }
-
-    if requested_path.name in protected_files:
-        return f"Error: {filename} is protected and cannot be modified."
-
-    if requested_path.exists():
-        return f"Error: {filename} already exists. Refusing to overwrite it."
-
-    requested_path.write_text(content)
-
-    return f"Successfully wrote {filename}."
-
-def calculate(operation: str, a: float, b: float) -> str:
-    """
-    Perform a basic arithmetic calculation.
-
-    Args:
-        operation: The operation to perform. Must be one of:
-            add, subtract, multiply, divide.
-        a: The first number.
-        b: The second number.
-
-    Returns:
-        The result of the calculation.
-    """
-    if not isinstance(operation, str):
-        return "Error: operation must be a string."
-
-    if not isinstance(a, (int, float)):
-        return "Error: a must be a number."
-
-    if not isinstance(b, (int, float)):
-        return "Error: b must be a number."
-    if operation == "add":
-        result = a + b
-
-    elif operation == "subtract":
-        result = a - b
-
-    elif operation == "multiply":
-        result = a * b
-
-    elif operation == "divide":
-        if b == 0:
-            return "Error: division by zero is not allowed."
-
-        result = a / b
-
-    else:
-        return f"Error: unknown operation '{operation}'."
-
-    return str(result)
-    
-
-
-tools = [
-    list_project_files,
-    read_text_file,
-    write_text_file,
-    calculate,
-]
-
-tool_registry = {
-    "list_project_files": list_project_files,
-    "read_text_file": read_text_file,
-    "write_text_file": write_text_file,
-    "calculate":calculate,
-}
-
-approval_required = {
-    "write_text_file",
-    "calculate",
-}
-
-messages = [
-    {
-        "role": "system",
-        "content": (
-            "You are a programming assistant. "
-            "Use the available tools when needed. "
-            "Do not invent file contents or project state."
-        ),
-    }
-]
 
 def request_approval(tool_name:str, arguments: dict) ->bool:
     """Ask the user before executing the tool"""
@@ -170,6 +21,19 @@ def request_approval(tool_name:str, arguments: dict) ->bool:
             return False
         print("Please enter y or n")
 
+
+messages = [
+    {
+        "role": "system",
+        "content": (
+            "You are a programming assistant. "
+            "Use the available tools when needed. "
+            "Do not invent file contents or project state."
+        ),
+    }
+]
+
+
 while True:
     user_input = input("You: ").strip()
 
@@ -177,7 +41,7 @@ while True:
         continue
 
     if user_input.lower() in {"exit", "quit"}:
-        print("Goodbye.")
+        print("Salam.")
         break
 
     messages.append(
@@ -191,7 +55,7 @@ while True:
         response = chat(
             model="qwen3:8b",
             messages=messages,
-            tools=tools,
+            tools=TOOLS,
         )
 
         messages.append(response.message)
@@ -207,18 +71,18 @@ while True:
             print(f"\nTool requested: {tool_name}")
             print(f"Arguments: {arguments}")
 
-            if tool_name not in tool_registry:
+            if tool_name not in TOOL_REGISTRY:
                 result = f"Error: unknown tool {tool_name}"
 
             elif not isinstance(arguments, dict):
                     result = "Tool error: arguments must be a dictionary"
 
             else:
-                tool_function = tool_registry[tool_name]
+                tool_function = TOOL_REGISTRY[tool_name]
 
                 approved = True
 
-                if tool_name in approval_required:
+                if tool_name in APPROVAL_REQUIRED:
                     approved = request_approval(tool_name, arguments)
 
                 if not approved:
