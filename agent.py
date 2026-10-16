@@ -56,6 +56,9 @@ while True:
             model="qwen3:8b",
             messages=messages,
             tools=TOOLS,
+            options={
+                "temperature":0.2,
+            },
         )
 
         messages.append(response.message)
