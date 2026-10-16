@@ -77,6 +77,47 @@ def write_text_file(filename: str, content: str) -> str:
     requested_path.write_text(content)
 
     return f"Successfully wrote {filename}."
+
+def calculate(operation: str, a: float, b: float) -> str:
+    """
+    Perform a basic arithmetic calculation.
+
+    Args:
+        operation: The operation to perform. Must be one of:
+            add, subtract, multiply, divide.
+        a: The first number.
+        b: The second number.
+
+    Returns:
+        The result of the calculation.
+    """
+    if not isinstance(operation, str):
+        return "Error: operation must be a string."
+
+    if not isinstance(a, (int, float)):
+        return "Error: a must be a number."
+
+    if not isinstance(b, (int, float)):
+        return "Error: b must be a number."
+    if operation == "add":
+        result = a + b
+
+    elif operation == "subtract":
+        result = a - b
+
+    elif operation == "multiply":
+        result = a * b
+
+    elif operation == "divide":
+        if b == 0:
+            return "Error: division by zero is not allowed."
+
+        result = a / b
+
+    else:
+        return f"Error: unknown operation '{operation}'."
+
+    return str(result)
     
 
 
@@ -84,16 +125,19 @@ tools = [
     list_project_files,
     read_text_file,
     write_text_file,
+    calculate,
 ]
 
 tool_registry = {
     "list_project_files": list_project_files,
     "read_text_file": read_text_file,
     "write_text_file": write_text_file,
+    "calculate":calculate,
 }
 
 approval_required = {
     "write_text_file",
+    "calculate",
 }
 
 messages = [
