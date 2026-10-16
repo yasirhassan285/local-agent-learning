@@ -2,25 +2,45 @@
 #import ollama function 'chat' to comminucate with our model
 from ollama import chat
 
-#send request to local ollama service
-response = chat(
-	model ="qwen3:8b",	#select which local model should handle the request
-	messages=[
-		   {
-		"role": "system", #Tell model what's it's role
-		"content": (
-			"you are a programming tutor"
-			"Explain technical concepts clearly and concisely"
-			   ),
-		   },
-		{
-		"role":"user",   #what user wants to ask
-		"content": (
-			"Explain what a python virtual environment is"
-			"in three sentences"
-			 ),
-		},
-		],
-		)
+                              
+messages = [    
+    {
+        "role": "system",
+        "content": (
+            "You are a programming tutor. "
+            "Explain technical concepts clearly and concisely."
+        ),
+    }
+]
 
-print(response.message.content)
+
+while True:
+	user_input = input("You: ").strip()
+	if not user_input:						#avoids sending blank messages
+		continue
+
+	if user_input.lower() in {"exit", "quit"}:
+		print("Goodbye")
+		break
+
+	messages.append(
+		{
+			"role": "user",
+			"content": user_input,
+		}
+	)
+
+	response = chat(
+		model= "qwen3:8b",
+		messages = messages,
+	)
+
+	assistant_message = response.message.content
+
+	print(f"\n Assistant:{assistant_message}\n")
+
+	messages.append(
+		{
+			"role":assistant_message
+		}
+	)
