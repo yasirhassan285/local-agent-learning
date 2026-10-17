@@ -47,7 +47,7 @@ def read_text_file(filename: str) -> str:
         return f"Error: {filename} is not a readable text file."
 
 
-def write_text_file(filename: str, content: str) -> str:
+def create_text_file(filename: str, content: str) -> str:
     """
     Create a new text file inside the current project directory.
 
@@ -126,7 +126,7 @@ def calculate(operation: str, a: float, b: float) -> str:
 TOOLS = [
     list_project_files,
     read_text_file,
-    write_text_file,
+    create_text_file,
     calculate,
 ]
 
@@ -134,11 +134,11 @@ TOOLS = [
 TOOL_REGISTRY = {
     "list_project_files": list_project_files,
     "read_text_file": read_text_file,
-    "write_text_file": write_text_file,
+    "create_text_file": create_text_file,
     "calculate": calculate,
 }
 
 
 APPROVAL_REQUIRED = {
-    "write_text_file",
+    "create_text_file",
 }
