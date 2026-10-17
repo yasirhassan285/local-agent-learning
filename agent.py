@@ -35,16 +35,6 @@ messages = [
     }
 ]
 
-"""context management: sliding window"""
-def trim_messages(messages: list, max_messages: int = 12) -> list:
-    """Keep the system message and the most recent conversation messages."""
-
-    system_message = messages[0]
-    recent_messages = messages[1:][-max_messages:]
-
-    return [system_message] + recent_messages
-
-
 while True:
     user_input = input("You: ").strip()
 
@@ -63,7 +53,6 @@ while True:
     )
 
     while True:
-        messages = trim_messages(messages)
         
         response = chat(
             model="qwen3:8b",
