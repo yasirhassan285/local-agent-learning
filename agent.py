@@ -52,7 +52,9 @@ while True:
         }
     )
 
-    while True:
+    MAX_TOOL_ROUNDS = 8
+
+    if _ in range(MAX_TOOL_ROUNDS):
         
         response = chat(
             model="qwen3:8b",
@@ -101,7 +103,14 @@ while True:
                     except Exception as error: 
                         result = f"Tool error: {error}"
 
-
+            result=str(result)
+            MAX_TOOL_RESULT_LENGTH = 10_000
+            if len(result)>MAX_TOOL_RESULT_LENGTH:
+                result =(
+                    result[:MAX_TOOL_RESULT_LENGTH]
+                    +
+                    "\n...[tool result truncated]"
+                )
 
             messages.append(
                 {
@@ -110,3 +119,5 @@ while True:
                     "content": str(result),
                 }
             )
+    else:
+        print("\n Assistant: Stopped because the tool call limit was reached")
