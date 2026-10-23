@@ -2,11 +2,14 @@ from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
 import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
+from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langgraph.types import Command
 
 from tools import (
     calculate,
     list_project_files,
     read_text_file,
+    create_text_file,
 )
 
 
@@ -30,6 +33,7 @@ agent = create_agent(
         calculate,
         list_project_files,
         read_text_file,
+        create_text_file,
     ],
     system_prompt=(
         "You are a concise programming assistant working with a local project. "
@@ -37,6 +41,13 @@ agent = create_agent(
         "Do not invent file contents or calculation results."
     ),
     checkpointer=checkpointer,
+    middleware=[
+        HumanInTheLoopMiddleware(
+            interrupt_on={
+                "create_text_file":True,
+            }
+        )
+    ],
 )
 
 config = {
@@ -66,5 +77,36 @@ while True:
         },
         config,
     )
+
+    if "__interrupt__" in result:
+        interrupt = result["__interrupt__"][0]
+
+        print("\n--- APPROVAL REQUIRED ---")
+        print(interrupt.value)
+
+        decision = input("Approve? [y/n]: ").strip().lower()
+
+        if decision in {"y", "yes"}:
+            resume_value = {
+                "decisions": [
+                    {
+                        "type": "approve"
+                    }
+                ]
+            }
+        else:
+            resume_value = {
+                "decisions": [
+                    {
+                        "type": "reject",
+                        "message": "User rejected the action."
+                    }
+                ]
+            }
+
+        result = agent.invoke(
+            Command(resume=resume_value),
+            config,
+        )
 
     print(f"\nAssistant: {result['messages'][-1].content}\n")
