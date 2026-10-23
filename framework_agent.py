@@ -1,6 +1,7 @@
 from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
-from langgraph.checkpoint.memory import InMemorySaver
+import sqlite3
+from langgraph.checkpoint.sqlite import SqliteSaver
 
 from tools import (
     calculate,
@@ -15,7 +16,12 @@ model = ChatOllama(
 )
 
 
-checkpointer = InMemorySaver()
+connection = sqlite3.connect(
+    "checkpoints.sqlite",
+    check_same_thread=False,
+)
+
+checkpointer=SqliteSaver(connection)
 
 
 agent = create_agent(
