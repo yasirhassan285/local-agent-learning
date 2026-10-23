@@ -1,5 +1,7 @@
 from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
+from langgraph.checkpoint.memory import InMemorySaver
+
 from tools import (
     calculate,
     list_project_files,
@@ -13,30 +15,50 @@ model = ChatOllama(
 )
 
 
+checkpointer = InMemorySaver()
+
+
 agent = create_agent(
     model=model,
-    tools=[calculate,
-           list_project_files,
-            read_text_file,
-            ],
+    tools=[
+        calculate,
+        list_project_files,
+        read_text_file,
+    ],
     system_prompt=(
         "You are a concise programming assistant working with a local project. "
         "Use tools when current project information is required. "
         "Do not invent file contents or calculation results."
     ),
+    checkpointer=checkpointer,
 )
 
-
-result = agent.invoke(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": "calculate 847 divided by 17",
-            }
-        ]
+config = {
+    "configurable": {
+        "thread_id": "conversation-1"
     }
-)
+}
 
 
-print(result["messages"][-1].content)
+while True:
+    user_input = input("You: ").strip()
+
+    if not user_input:
+        continue
+
+    if user_input.lower() in {"exit", "quit"}:
+        break
+
+    result = agent.invoke(
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": user_input,
+                }
+            ]
+        },
+        config,
+    )
+
+    print(f"\nAssistant: {result['messages'][-1].content}\n")
