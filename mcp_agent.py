@@ -1,9 +1,10 @@
 import asyncio
-from pathlib import Path
 
 from langchain.agents import create_agent
 from langchain.mcp import MCPAdapter
 from langchain_ollama import ChatOllama
+
+from tools import list_project_files
 
 
 async def main():
@@ -12,37 +13,66 @@ async def main():
         temperature=0.2,
     )
 
-    server_path = Path("math_mcp_server.py").resolve()
+    config = {
+        "mcpServers": {
+            "math": {
+                "command": "python",
+                "args": ["math_mcp_server.py"],
+            },
+            "text": {
+                "command": "python",
+                "args": ["text_mcp_server.py"],
+            },
+        }
+    }
 
-    async with MCPAdapter(server_path) as adapter:
-        tools = await adapter.list_tools()
+    async with MCPAdapter(config) as adapter:
+        mcp_tools = await adapter.list_tools()
 
-        print("Discovered tools:")
+        tools = [
+            list_project_files,
+            *mcp_tools,
+        ]
+
+        print("Available tools:")
+
         for tool in tools:
-            print(f"- {tool.name}")
-
+            name = getattr(tool, "name", None) or getattr(tool, "__name__", "Unknown")
+            print(f"- {name}")
+            
         agent = create_agent(
             model=model,
             tools=tools,
             system_prompt=(
-                "You are a concise math assistant. "
-                "Use the available tools for calculations."
+                "You are a concise assistant. "
+                "Use tools when appropriate."
             ),
         )
 
-        result = await agent.ainvoke(
-            {
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": "What is 37 multiplied by 19?",
-                    }
-                ]
-            }
-        )
+        while True:
+            user_input = input("You: ").strip()
 
-        print("\nAssistant:")
-        print(result["messages"][-1].content)
+            if not user_input:
+                continue
+
+            if user_input.lower() in {"exit", "quit"}:
+                break
+
+            result = await agent.ainvoke(
+                {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": user_input,
+                        }
+                    ]
+                }
+            )
+
+            print(
+                f"\nAssistant: "
+                f"{result['messages'][-1].content}\n"
+            )
 
 
 asyncio.run(main())
